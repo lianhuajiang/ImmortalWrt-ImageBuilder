@@ -197,3 +197,25 @@ CUSTOM_PACKAGES="$CUSTOM_PACKAGES kmod-usb-net-rndis kmod-usb-net-cdc-ncm kmod-u
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES kmod-usb-net-ipheth usbmuxd libimobiledevice"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES kmod-usb-net-qmi-wwan kmod-usb-net-cdc-mbim kmod-usb-serial-option uqmi umbim usb-modeswitch"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES luci-i18n-base-zh-cn"
+# === USB WAN 预配置（追加到文件末尾） ===
+uci -q get network.usbwan >/dev/null || {
+  uci set network.usbwan=interface
+  uci set network.usbwan.proto='dhcp'
+  uci set network.usbwan.device='usb0'
+  uci set network.usbwan.auto='0'
+  uci set network.usbwan.metric='20'
+}
+uci -q get network.usbwan6 >/dev/null || {
+  uci set network.usbwan6=interface
+  uci set network.usbwan6.proto='dhcpv6'
+  uci set network.usbwan6.device='usb0'
+  uci set network.usbwan6.auto='0'
+  uci set network.usbwan6.reqaddress='try'
+  uci set network.usbwan6.reqprefix='auto'
+}
+for z in $(uci show firewall | sed -n "s/^firewall\.@zone\[\([0-9]*\)\]\.name='wan'$/\1/p"); do
+  uci -q get firewall.@zone[$z].network | grep -q usbwan || uci add_list firewall.@zone[$z].network='usbwan'
+  uci -q get firewall.@zone[$z].network | grep -q usbwan6 || uci add_list firewall.@zone[$z].network='usbwan6'
+done
+uci commit network
+uci commit firewall
