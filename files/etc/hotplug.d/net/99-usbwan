@@ -1,0 +1,20 @@
+#!/bin/sh
+# USB 网卡插入自动拉起 usbwan / usbwan6，拔出自动释放
+[ "$ACTION" = "add" ] || [ "$ACTION" = "remove" ] || exit 0
+dev="$DEVICENAME"
+case "$dev" in
+  usb0|usb1|usb2|eth2|wwan0|wwan1) ;;
+  *) exit 0 ;;
+esac
+if [ "$ACTION" = "add" ]; then
+  uci set network.usbwan.device="$dev"
+  uci set network.usbwan6.device="$dev"
+  uci commit network
+  ifup usbwan
+  ifup usbwan6
+  logger -t usbwan "USB WAN $dev up"
+else
+  ifdown usbwan
+  ifdown usbwan6
+  logger -t usbwan "USB WAN $dev down"
+fi
